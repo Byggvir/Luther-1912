@@ -1,0 +1,42 @@
+--
+--
+--
+
+drop table if exists books;
+
+create table if not exists books (
+      bnumber INT(11)
+    , bname   CHAR(255)
+    , primary key (bnumber)
+    )  
+;
+
+create index bname on books (bname);
+
+drop table if exists verses;
+
+create table if not exists verses (
+      bnumber INT(11)
+    , cnumber INT(11)
+    , vnumber INT(11)
+    , verse TEXT(1024)
+    , primary key (bnumber,cnumber,vnumber)
+    ) 
+;
+
+drop table if exists wordlist;
+
+create table if not exists wordlist (
+      word CHAR(255)
+    , wcount BIGINT (20)
+    , primary key (word)
+    ) 
+;
+
+.mode csv
+.separator ;
+.import /tmp/biblebooks.csv books
+.import /tmp/wordlist.csv wordlist
+
+.separator \t
+.import /tmp/verses.csv verses

@@ -1,0 +1,78 @@
+#!/bin/bash
+
+
+#
+# Define variables for foldernames
+#
+
+DIR=$(dirname $0)
+DATA="${DIR}/../data"
+
+# Create data folder if not exists
+
+[ -d "$DATA" ] || mkdir -p "$DATA"
+
+SED="${DIR}/sed"
+AWK="${DIR}/awk"
+
+#
+# URL of ZIP-archive with Luther 1912 bible  
+#
+
+URL="https://www.toledot.info/download/bibel/SF_2022-02-27_GER_LUTH1912_xml.php"
+
+#
+# Download ZIP-archive with bible in XML-format.  
+#
+
+### wget -O "${DATA}/Luther_1912.zip" "${URL}"
+
+#
+# Get filename from ZIP-archive
+#
+
+FILE=${DATA}/$(unzip -l "${DATA}/Luther_1912.zip" | awk '/xml/{ print($4)}')
+
+#
+# Unzip the downloaded ZIP file indo DATA-folder  
+#
+
+unzip -o "${DATA}/Luther_1912.zip"  -d "$DATA"
+
+#
+# Extract BIBLEBOOKS from XML-file and convert file into a CSV-file for import of books.  
+#
+
+sed -n -f "${SED}/books.sed" "$FILE" > "${DATA}/biblebooks.csv"
+
+#
+# Extract verses into a temporary CSV-file.  
+#
+
+sed -n -f "${SED}/vers.sed" "$FILE" > "/tmp/temporary_verses.csv"
+
+#
+# Convert the temporary file into the final CSV-file for import of verses.  
+#
+
+awk -F '\t' -f "${AWK}/verse.awk" /tmp/temporary_verses.csv > "${DATA}/verses.csv"
+
+#
+# Create a word list containing all words that occur at least n times.  
+#
+
+threshold=1
+
+grep '<VERS' "$FILE" \
+| sed -f "${SED}/wordlist.sed" \
+| tr '[A-Z]ÄÖÜ' '[a-z]äöü' \
+| sort \
+| sed '/^$/d' \
+| awk -F ';' -f "${AWK}/wordlist.awk" \
+> "${DATA}/wordlist.csv"
+
+#
+# Copy all CSV file to /tmp/ for import with SQL LOAD INTO command  
+#
+
+cp ${DATA}/*.csv /tmp/
